@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1090255903778",
+    "project_id": "sehat-mand-pakistan",
+    "storage_bucket": "sehat-mand-pakistan.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090255903778:android:741a84784c8ce884fcbe7b",
+        "android_client_info": {
+          "package_name": "com.example.sehat_mand_pakistan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnkE0CmZod8one27UapO1QSJ1v4nlCk1I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

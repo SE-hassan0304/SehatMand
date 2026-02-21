@@ -1,0 +1,51 @@
+name: sehatmand_pakistan
+description: SehatMandPakistan - Your AI Health Companion
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # UI & Fonts
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.3.0
+
+  # Icons
+  flutter_svg: ^2.0.9
+  phosphor_flutter: ^2.0.1
+
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.2.2
+
+  # Firebase (Auth + Firestore - stub for now)
+  # firebase_core: ^2.24.2
+  # firebase_auth: ^4.15.3
+  # cloud_firestore: ^4.13.6
+  # google_sign_in: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+  riverpod_generator: ^2.3.9
+  custom_lint: ^0.5.8
+  riverpod_lint: ^2.3.7
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
