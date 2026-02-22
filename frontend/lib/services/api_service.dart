@@ -15,7 +15,7 @@ class ApiService {
   // Physical device  → use your machine's LAN IP, e.g. 192.168.1.x:5000
   // Web (Chrome dev) → use localhost:5000
   // Production       → https://your-backend.com
-  static const String _baseUrl = 'http://localhost:5000';
+  static const String _baseUrl = 'https://sehatmand-production.up.railway.app';
 
   static const Duration _timeout = Duration(seconds: 30);
 
