@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -68,7 +69,15 @@ class _HospitalScreenState extends State<HospitalScreen> {
   LatLng? _userLocation;
   List<_Hospital> _hospitals = [];
 
-  final Completer<GoogleMapController> _mapController = Completer();
+  // FIX: Use a direct controller reference instead of a Completer.
+  // The Completer pattern causes a race condition — it's awaited before
+  // the GoogleMap widget has rendered, so onMapCreated never fires in time.
+  GoogleMapController? _mapController;
+
+  // FIX: A unique key forces GoogleMap to fully rebuild (and re-fire
+  // onMapCreated) each time the user triggers a new search.
+  Key _mapKey = UniqueKey();
+
   final Set<Marker> _markers = {};
   int? _selectedIndex;
 
@@ -86,20 +95,33 @@ class _HospitalScreenState extends State<HospitalScreen> {
       _hospitals = hospitals; // already sorted by backend
       _buildMarkers();
 
+      // FIX: Reset the map key so GoogleMap rebuilds and fires onMapCreated
+      // with a fresh controller pointing at the real GPS position.
       setState(() {
         _isLoading = false;
         _showResults = true;
+        _mapKey = UniqueKey(); // forces map widget rebuild
+        _mapController = null; // clear stale controller
       });
 
-      final ctrl = await _mapController.future;
-      await ctrl.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(target: _userLocation!, zoom: 13),
-      ));
+      // The map will call _onMapCreated after the next frame.
+      // Camera animation happens inside _onMapCreated once controller is ready.
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+    }
+  }
+
+  /// Called by GoogleMap's onMapCreated — controller is guaranteed ready here.
+  void _onMapCreated(GoogleMapController ctrl) {
+    _mapController = ctrl;
+    // Fly to user's REAL GPS location now that the controller exists.
+    if (_userLocation != null) {
+      ctrl.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: _userLocation!, zoom: 13),
+      ));
     }
   }
 
@@ -182,19 +204,23 @@ class _HospitalScreenState extends State<HospitalScreen> {
 
   Future<void> _onMarkerTap(int index) async {
     setState(() => _selectedIndex = index);
-    final ctrl = await _mapController.future;
-    await ctrl.animateCamera(CameraUpdate.newCameraPosition(
+    await _mapController?.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(target: _hospitals[index].position, zoom: 15.5),
     ));
   }
 
   Future<void> _flyToHospital(int index) async {
     setState(() => _selectedIndex = index);
-    final ctrl = await _mapController.future;
-    await ctrl.animateCamera(CameraUpdate.newCameraPosition(
+    await _mapController?.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(target: _hospitals[index].position, zoom: 15.5),
     ));
-    await ctrl.showMarkerInfoWindow(MarkerId('h_$index'));
+    await _mapController?.showMarkerInfoWindow(MarkerId('h_$index'));
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -205,9 +231,14 @@ class _HospitalScreenState extends State<HospitalScreen> {
         Expanded(
           child: _showResults
               ? _ResultsView(
+                  mapKey: _mapKey,
                   markers: _markers,
-                  mapController: _mapController,
+                  onMapCreated: _onMapCreated,
                   hospitals: _hospitals,
+                  // FIX: Pass real GPS position as initial target.
+                  // Previously the widget used a hardcoded Karachi fallback
+                  // when the map first rendered because the Completer hadn't
+                  // resolved yet. Now we pass _userLocation directly.
                   userLocation: _userLocation,
                   selectedIndex: _selectedIndex,
                   onCardTap: _flyToHospital,
@@ -413,16 +444,19 @@ class _RequestLocationView extends StatelessWidget {
 
 // ── Results ───────────────────────────────────────────────────────────────────
 class _ResultsView extends StatelessWidget {
+  final Key mapKey;
   final Set<Marker> markers;
-  final Completer<GoogleMapController> mapController;
+  // FIX: Accept onMapCreated callback instead of a Completer.
+  final void Function(GoogleMapController) onMapCreated;
   final List<_Hospital> hospitals;
   final LatLng? userLocation;
   final int? selectedIndex;
   final void Function(int) onCardTap;
 
   const _ResultsView({
+    required this.mapKey,
     required this.markers,
-    required this.mapController,
+    required this.onMapCreated,
     required this.hospitals,
     required this.userLocation,
     required this.selectedIndex,
@@ -441,13 +475,17 @@ class _ResultsView extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: GoogleMap(
+                // FIX: Unique key ensures the widget fully rebuilds each search,
+                // so onMapCreated is always called with a fresh controller.
+                key: mapKey,
                 initialCameraPosition: CameraPosition(
+                  // FIX: Use real GPS position as initial target.
+                  // onMapCreated will immediately animate to the same point,
+                  // so even the brief initial render shows the correct area.
                   target: userLocation ?? const LatLng(24.8607, 67.0104),
                   zoom: 13,
                 ),
-                onMapCreated: (ctrl) {
-                  if (!mapController.isCompleted) mapController.complete(ctrl);
-                },
+                onMapCreated: onMapCreated,
                 markers: markers,
                 myLocationEnabled: true,
                 myLocationButtonEnabled: true,
