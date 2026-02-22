@@ -19,7 +19,7 @@ import time
 import math
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="https://sehat-mand.netlify.app")
 
 # ── Server-side conversation memory ──────────────────────
 SESSIONS     = {}
