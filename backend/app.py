@@ -366,17 +366,17 @@ def health():
     }), 200
 
 
+import os
+
 if __name__ == "__main__":
     print("=" * 55)
     print("  SEHAT MAND PAKISTAN — Backend")
-    print("  POST /api/chat          — AI chat")
-    print("  GET  /api/places/nearby — FREE hospital search")
-    print("                            (OpenStreetMap, no billing)")
-    print("  POST /api/clear         — Clear session memory")
-    print("  GET  /api/health        — Health check")
     print("=" * 55)
 
     warm_up()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+  
  import os
 
 if __name__ == "__main__":
